@@ -1,0 +1,50 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Amazon EC2 offerings checker
+Parameters:
+  ApplicationId:
+    Type: String
+    Description: Application ID
+    Default: ''
+  ApplicationTag:
+    Type: String
+    Description: Application tag
+    Default: ''
+Conditions:
+  HasApplicationAssoc:
+    Fn::Not:
+      - !Equals
+        - !Ref ApplicationId
+        - ''
+  HasApplicationTag:
+    Fn::Not:
+      - !Equals
+        - !Ref ApplicationTag
+        - ''
+Resources:
+  AppAssoc:
+    Type: AWS::ServiceCatalogAppRegistry::ResourceAssociation
+    Condition: HasApplicationAssoc
+    Properties:
+      Application: !Ref ApplicationId
+      Resource: !Ref AWS::StackId
+      ResourceType: CFN_STACK
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-Bucket"
+        - Key: CostTag
+          Value: !Ref AWS::StackName
+        - Key: AppManagerCFNStackKey
+          Value: !Ref AWS::StackName
+        - Fn::If:
+            - HasApplicationTag
+            - Key: awsApplication
+              Value: !Ref ApplicationTag
+            - !Ref AWS::NoValue
