@@ -48,3 +48,323 @@ Resources:
             - Key: awsApplication
               Value: !Ref ApplicationTag
             - !Ref AWS::NoValue
+  Layer:
+    Type: AWS::Lambda::LayerVersion
+    Properties:
+      CompatibleArchitectures:
+        - x86_64
+      CompatibleRuntimes:
+        - python3.12
+      Content: ./layer
+      Description: !Sub "${AWS::StackName} libraries layer"
+  AccessBucketPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: !Sub "Access to ${AWS::StackName} bucket"
+      Path: !Sub "/${AWS::StackName}/"
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - s3:ListBucket
+              - s3:GetObject
+              - s3:PutObject
+            Resource:
+              - !GetAtt Bucket.Arn
+              - !Sub "${Bucket.Arn}/*"
+  ListRegionsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Description: !Sub "${AWS::StackName} ListRegions function role"
+      Path: !Sub "/${AWS::StackName}/"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: sts:AssumeRole
+            Principal:
+              Service: lambda.amazonaws.com
+      ManagedPolicyArns:
+        - !Sub "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+      Policies:
+        - PolicyName: ListRegions
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: ec2:DescribeRegions
+                Resource: '*'
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-ListRegionsRole"
+        - Key: CostTag
+          Value: !Ref AWS::StackName
+        - Key: AppManagerCFNStackKey
+          Value: !Ref AWS::StackName
+        - Fn::If:
+            - HasApplicationTag
+            - Key: awsApplication
+              Value: !Ref ApplicationTag
+            - !Ref AWS::NoValue
+  ListRegionsLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 1
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-ListRegionsLogs"
+        - Key: CostTag
+          Value: !Ref AWS::StackName
+        - Key: AppManagerCFNStackKey
+          Value: !Ref AWS::StackName
+        - Fn::If:
+            - HasApplicationTag
+            - Key: awsApplication
+              Value: !Ref ApplicationTag
+            - !Ref AWS::NoValue
+  ListRegions:
+    Type: AWS::Lambda::Function
+    Properties:
+      Architectures:
+        - x86_64
+      Code: ./funcs/list_regions
+      Description: !Sub "${AWS::StackName} ListRegions function"
+      Handler: index.handler
+      Layers:
+        - !Ref Layer
+      LoggingConfig:
+        LogGroup: !Ref ListRegionsLogs
+      MemorySize: 256
+      Role: !GetAtt ListRegionsRole.Arn
+      Runtime: python3.12
+      Timeout: 900
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-ListRegions"
+        - Key: CostTag
+          Value: !Ref AWS::StackName
+        - Key: AppManagerCFNStackKey
+          Value: !Ref AWS::StackName
+        - Fn::If:
+            - HasApplicationTag
+            - Key: awsApplication
+              Value: !Ref ApplicationTag
+            - !Ref AWS::NoValue
+  GetTypesForRegionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Description: !Sub "${AWS::StackName} GetTypesForRegion function role"
+      Path: !Sub "/${AWS::StackName}/"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: sts:AssumeRole
+            Principal:
+              Service: lambda.amazonaws.com
+      ManagedPolicyArns:
+        - !Sub "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+      Policies:
+        - PolicyName: GetOfferings
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: ec2:DescribeInstanceTypeOfferings
+                Resource: '*'
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-GetTypesForRegionRole"
+        - Key: CostTag
+          Value: !Ref AWS::StackName
+        - Key: AppManagerCFNStackKey
+          Value: !Ref AWS::StackName
+        - Fn::If:
+            - HasApplicationTag
+            - Key: awsApplication
+              Value: !Ref ApplicationTag
+            - !Ref AWS::NoValue
+  GetTypesForRegionLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 1
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-GetTypesForRegionLogs"
+        - Key: CostTag
+          Value: !Ref AWS::StackName
+        - Key: AppManagerCFNStackKey
+          Value: !Ref AWS::StackName
+        - Fn::If:
+            - HasApplicationTag
+            - Key: awsApplication
+              Value: !Ref ApplicationTag
+            - !Ref AWS::NoValue
+  GetTypesForRegion:
+    Type: AWS::Lambda::Function
+    Properties:
+      Architectures:
+        - x86_64
+      Code: ./funcs/list_regions
+      Description: !Sub "${AWS::StackName} GetTypesForRegion function"
+      Handler: index.handler
+      Layers:
+        - !Ref Layer
+      LoggingConfig:
+        LogGroup: !Ref GetTypesForRegionLogs
+      MemorySize: 256
+      Role: !GetAtt GetTypesForRegionRole.Arn
+      Runtime: python3.12
+      Timeout: 900
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-GetTypesForRegion"
+        - Key: CostTag
+          Value: !Ref AWS::StackName
+        - Key: AppManagerCFNStackKey
+          Value: !Ref AWS::StackName
+        - Fn::If:
+            - HasApplicationTag
+            - Key: awsApplication
+              Value: !Ref ApplicationTag
+            - !Ref AWS::NoValue
+  AggregateResultsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Description: !Sub "${AWS::StackName} AggregateResults function role"
+      Path: !Sub "/${AWS::StackName}/"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: sts:AssumeRole
+            Principal:
+              Service: lambda.amazonaws.com
+      ManagedPolicyArns:
+        - !Sub "arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+        - !Ref AccessBucketPolicy
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-AggregateResultsRole"
+        - Key: CostTag
+          Value: !Ref AWS::StackName
+        - Key: AppManagerCFNStackKey
+          Value: !Ref AWS::StackName
+        - Fn::If:
+            - HasApplicationTag
+            - Key: awsApplication
+              Value: !Ref ApplicationTag
+            - !Ref AWS::NoValue
+  AggregateResultsLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 1
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-AggregateResultsLogs"
+        - Key: CostTag
+          Value: !Ref AWS::StackName
+        - Key: AppManagerCFNStackKey
+          Value: !Ref AWS::StackName
+        - Fn::If:
+            - HasApplicationTag
+            - Key: awsApplication
+              Value: !Ref ApplicationTag
+            - !Ref AWS::NoValue
+  AggregateResults:
+    Type: AWS::Lambda::Function
+    Properties:
+      Architectures:
+        - x86_64
+      Code: ./funcs/list_regions
+      Description: !Sub "${AWS::StackName} AggregateResults function"
+      Handler: index.handler
+      Layers:
+        - !Ref Layer
+      LoggingConfig:
+        LogGroup: !Ref AggregateResultsLogs
+      MemorySize: 256
+      Role: !GetAtt AggregateResultsRole.Arn
+      Runtime: python3.12
+      Timeout: 900
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-AggregateResults"
+        - Key: CostTag
+          Value: !Ref AWS::StackName
+        - Key: AppManagerCFNStackKey
+          Value: !Ref AWS::StackName
+        - Fn::If:
+            - HasApplicationTag
+            - Key: awsApplication
+              Value: !Ref ApplicationTag
+            - !Ref AWS::NoValue
+  StateMachineLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 1
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-StateMachineLogs"
+        - Key: CostTag
+          Value: !Ref AWS::StackName
+        - Key: AppManagerCFNStackKey
+          Value: !Ref AWS::StackName
+        - Fn::If:
+            - HasApplicationTag
+            - Key: awsApplication
+              Value: !Ref ApplicationTag
+            - !Ref AWS::NoValue
+  StateMachineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Description: !Sub "${AWS::StackName} state machine role"
+      Path: !Sub "/${AWS::StackName}/"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: sts:AssumeRole
+            Principal:
+              Service: states.amazonaws.com
+      Policies:
+        - PolicyName: PutLogs
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource:
+                  - !Sub "${StateMachineLogs.Arn}:log-stream:*"
+        - PolicyName: CreateLogGroup
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: logs:CreateLogGroup
+                Resource: !GetAtt StateMachineLogs.Arn
+        - PolicyName: InvokeFunctions
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource:
+                  - !GetAtt ListRegions.Arn
+                  - !GetAtt GetTypesForRegion.Arn
+                  - !GetAtt AggregateResults.Arn
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-StateMachineRole"
+        - Key: CostTag
+          Value: !Ref AWS::StackName
+        - Key: AppManagerCFNStackKey
+          Value: !Ref AWS::StackName
+        - Fn::If:
+            - HasApplicationTag
+            - Key: awsApplication
+              Value: !Ref ApplicationTag
+            - !Ref AWS::NoValue
