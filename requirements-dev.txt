@@ -1,0 +1,5 @@
+pylint
+pycodestyle
+mypy
+boto3-stubs[essential]
+aws-lambda-powertools[aws-sdk]
