@@ -206,7 +206,7 @@ Resources:
     Properties:
       Architectures:
         - x86_64
-      Code: ./funcs/list_regions
+      Code: ./funcs/get_types_for_region
       Description: !Sub "${AWS::StackName} GetTypesForRegion function"
       Handler: index.handler
       Layers:
@@ -277,7 +277,7 @@ Resources:
     Properties:
       Architectures:
         - x86_64
-      Code: ./funcs/list_regions
+      Code: ./funcs/aggregate_results
       Description: !Sub "${AWS::StackName} AggregateResults function"
       Handler: index.handler
       Layers:
