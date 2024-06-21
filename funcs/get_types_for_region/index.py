@@ -1,5 +1,8 @@
 """リージョンごとのインスタンスタイプ情報を取得します."""
 
+import json
+import os
+import uuid
 from typing import TYPE_CHECKING, TypedDict
 
 import boto3
@@ -12,9 +15,10 @@ class EventDict(TypedDict):
 
     region: str
 
-def handler(event: EventDict, context: "LambdaContext") -> dict[str, list[str]]:
+def handler(event: EventDict, context: "LambdaContext") -> dict[str, str]:
     """メイン関数です."""
     ec2 = boto3.Session(region_name=event["region"]).client("ec2")
+    s3 = boto3.Session().resource("s3")
     res = ec2.describe_instance_type_offerings(
         LocationType="availability-zone-id"
     )
@@ -38,4 +42,7 @@ def handler(event: EventDict, context: "LambdaContext") -> dict[str, list[str]]:
                 ret[instance_type].append(location)
             else:
                 ret[instance_type] = [location]
-    return ret
+    bucket = s3.Bucket(os.environ["BUCKET_NAME"])
+    obj_name = "step_out/" + str(uuid.uuid4()) + ".json"
+    bucket.put_object(Key=obj_name, Body=json.dumps(ret).encode("utf-8"))
+    return {"output": obj_name}

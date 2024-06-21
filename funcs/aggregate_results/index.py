@@ -1,5 +1,7 @@
 """まとまった情報をExcel形式にして、S3バケットに保存します."""
 
+import io
+import json
 import os
 import tempfile
 from typing import TYPE_CHECKING, TypedDict
@@ -14,7 +16,7 @@ class EventDict(TypedDict):
     """イベントの一部の辞書です."""
 
     region: str
-    offerings: dict[str, list[str]]
+    offerings: str
 
 def handler(event: list[EventDict], context: "LambdaContext") -> dict[str, str]:
     """出力を生成します."""
@@ -24,6 +26,10 @@ def handler(event: list[EventDict], context: "LambdaContext") -> dict[str, str]:
     workbook = openpyxl.Workbook()
     is_first = True
     for region in event:
+        with tempfile.NamedTemporaryFile(suffix=".json") as tfp:
+            bucket.download_fileobj(Key=region["offerings"], Fileobj=tfp)
+            tfp.seek(0, io.SEEK_SET)
+            region_offerings: dict[str, list[str]] = json.load(tfp)
         if is_first:
             is_first = False
             worksheet = workbook.worksheets[0]
@@ -31,14 +37,14 @@ def handler(event: list[EventDict], context: "LambdaContext") -> dict[str, str]:
         else:
             worksheet = workbook.create_sheet(region["region"])
         azs: set[str] = set()
-        for offering_azs in region["offerings"].values():
+        for offering_azs in region_offerings.values():
             azs |= set(offering_azs)
         az_list = sorted(list(azs))
         worksheet.cell(2, 2).value = "Type"
         for ci, az in enumerate(az_list):
             worksheet.cell(2, ci + 3).value = az
         cidx = 3
-        for itype, oazs in region["offerings"].items():
+        for itype, oazs in region_offerings.items():
             worksheet.cell(cidx, 2).value = itype
             for ci, taz in enumerate(az_list):
                 worksheet.cell(cidx, ci + 3).value = 'o' if taz in oazs else 'x'
