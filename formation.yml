@@ -424,7 +424,6 @@ Resources:
                 GetTypesForRegionState:
                   Type: Task
                   Resource: !GetAtt GetTypesForRegion.Arn
-                  OutputPath: $.output
                   ResultPath: $.offerings
                   End: true
             Next: AggregateResultsState

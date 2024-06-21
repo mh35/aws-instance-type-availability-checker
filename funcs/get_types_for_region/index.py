@@ -15,7 +15,7 @@ class EventDict(TypedDict):
 
     region: str
 
-def handler(event: EventDict, context: "LambdaContext") -> dict[str, str]:
+def handler(event: EventDict, context: "LambdaContext") -> str:
     """メイン関数です."""
     ec2 = boto3.Session(region_name=event["region"]).client("ec2")
     s3 = boto3.Session().resource("s3")
@@ -45,4 +45,4 @@ def handler(event: EventDict, context: "LambdaContext") -> dict[str, str]:
     bucket = s3.Bucket(os.environ["BUCKET_NAME"])
     obj_name = "step_out/" + str(uuid.uuid4()) + ".json"
     bucket.put_object(Key=obj_name, Body=json.dumps(ret).encode("utf-8"))
-    return {"output": obj_name}
+    return obj_name
