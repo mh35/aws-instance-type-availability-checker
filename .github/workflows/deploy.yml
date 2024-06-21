@@ -18,7 +18,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install layer content
-        run: pip install -t layer/python
+        run: pip install -t layer/python -r requirements.txt
       - name: Clean layer content
         run: |
           rm -r layer/python/*.dist-info
