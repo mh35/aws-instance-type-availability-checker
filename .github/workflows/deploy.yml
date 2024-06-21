@@ -1,0 +1,50 @@
+on:
+  push:
+    branches:
+      - main
+name: Deploy
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install layer content
+        run: pip install -t layer/python
+      - name: Clean layer content
+        run: |
+          rm -r layer/python/*.dist-info
+          rm -r layer/python/bin
+          find layer/python -name __pycache__ -exec rm -r {} +
+          rm layer/python/.keep
+      - name: Sign into AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          audience: sts.amazonaws.com
+          aws-region: ${{ vars.TARGET_REGION }}
+          role-to-assume: ${{ secrets.ASSUME_TARGET }}
+      - name: Package
+        run: >-
+          aws cloudformation package --template-file formation.yml
+          --s3-bucket ${{ secrets.SOURCE_BUCKET }}
+          --s3-prefix instance_types --output-template-file deploy.yml
+      - name: Deploy
+        run: >-
+          aws cloudformation deploy --template-file deploy.yml
+          --stack-name ${{ secrets.StACK_NAME }}
+          --capabilities CAPABILITY_IAM
+          --role-arn ${{ secrets.DEPLOY_ROLE }} --tags
+          Name=${{ secrets.STACK_NAME }}
+          AppManagerCFNStackKey=${{ secrets.STACK_NAME }}
+          awsApplication=${{ secrets.APPLICATION_TAG }}
+          --parameter-overrides
+          ApplicationId=${{ secrets.APPLICATION_ARN }}
+          APPLICATION_TAG=${{ secrets.APPLICATION_TAG }}
