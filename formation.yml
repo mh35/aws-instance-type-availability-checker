@@ -368,3 +368,51 @@ Resources:
             - Key: awsApplication
               Value: !Ref ApplicationTag
             - !Ref AWS::NoValue
+  StateMachine:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      RoleArn: !GetAtt StateMachineRole.Arn
+      StateMachineType: STANDARD
+      LoggingConfiguration:
+        Destinations:
+          - CloudWatchLogsLogGroup:
+              LogGroupArn: !GetAtt StateMachineLogs.Arn
+        IncludeExecutionData: true
+        Level: ERROR
+      Definition:
+        Comment: Get all available offerings
+        StartAt: ListRegionsState
+        States:
+          ListRegionsState:
+            Type: Task
+            Resource: !GetAtt ListRegions.Arn
+            Next: MapRegionsState
+          MapRegionsState:
+            Type: Map
+            ItemProcessor:
+              ProcessorConfig:
+                Mode: INLINE
+              StartAt: GetTypesForRegionState
+              States:
+                GetTypesForRegionState:
+                  Type: Task
+                  Resource: !GetAtt GetTypesForRegion.Arn
+                  OutputPath: $.offerings
+                  End: true
+            Next: AggregateResultsState
+          AggregateResultsState:
+            Type: Task
+            Resource: !GetAtt AggregateResults.Arn
+            End: true
+      Tags:
+        - Key: Name
+          Value: !Sub "${AWS::StackName}-StateMachine"
+        - Key: CostTag
+          Value: !Ref AWS::StackName
+        - Key: AppManagerCFNStackKey
+          Value: !Ref AWS::StackName
+        - Fn::If:
+            - HasApplicationTag
+            - Key: awsApplication
+              Value: !Ref ApplicationTag
+            - !Ref AWS::NoValue
