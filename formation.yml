@@ -346,6 +346,21 @@ Resources:
               - Effect: Allow
                 Action: logs:CreateLogGroup
                 Resource: !GetAtt StateMachineLogs.Arn
+        - PolicyName: LogGroupGeneralPermissions
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogDelivery
+                  - logs:PutResourcePolicy
+                  - logs:DescribeLogGroups
+                  - logs:UpdateLogDelivery
+                  - logs:DeleteLogDelivery
+                  - logs:DescribeResourcePolicies
+                  - logs:GetLogDelivery
+                  - logs:ListLogDeliveries
+                Resource: '*'
         - PolicyName: InvokeFunctions
           PolicyDocument:
             Version: '2012-10-17'
