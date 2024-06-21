@@ -26,7 +26,6 @@ def handler(event: EventDict, context: "LambdaContext") -> dict[str, list[str]]:
             ret[instance_type].append(location)
         else:
             ret[instance_type] = [location]
-    res["NextToken"]
     while "NextToken" in res:
         res = ec2.describe_instance_type_offerings(
             LocationType="availability-zone-id",
